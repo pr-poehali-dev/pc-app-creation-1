@@ -1,6 +1,11 @@
 import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
+const AVATAR_COLORS = [
+  "#6366f1", "#10b981", "#f59e0b", "#ef4444",
+  "#8b5cf6", "#06b6d4", "#f97316", "#ec4899",
+];
+
 const CHATS = [
   {
     id: 1,
@@ -74,6 +79,25 @@ const CHATS = [
 type Tab = "chats" | "search" | "settings";
 type View = "active" | "archive";
 
+interface Message {
+  id: number;
+  text: string;
+  from: "me" | "them";
+  time: string;
+  type: "text" | "file" | "image";
+  fileName?: string;
+  fileSize?: string;
+  imageUrl?: string;
+}
+
+interface Profile {
+  name: string;
+  username: string;
+  avatarText: string;
+  avatarColor: string;
+  avatarImage: string | null;
+}
+
 export default function Index() {
   const [activeTab, setActiveTab] = useState<Tab>("chats");
   const [selectedChat, setSelectedChat] = useState(CHATS[0]);
@@ -83,6 +107,17 @@ export default function Index() {
   const [messages, setMessages] = useState(CHATS[0].messages);
   const [allChats, setAllChats] = useState(CHATS);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [profile, setProfile] = useState<Profile>({
+    name: "Вы",
+    username: "username",
+    avatarText: "ВЫ",
+    avatarColor: "#64dcb4",
+    avatarImage: null,
+  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editProfile, setEditProfile] = useState<Profile>(profile);
 
   const filteredChats = allChats.filter((c) =>
     view === "active" ? !c.archived : c.archived
@@ -122,6 +157,24 @@ export default function Index() {
       )
     );
     setMessage("");
+  };
+
+  const openEdit = () => {
+    setEditProfile(profile);
+    setEditOpen(true);
+  };
+
+  const saveProfile = () => {
+    setProfile(editProfile);
+    setEditOpen(false);
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setEditProfile((p) => ({ ...p, avatarImage: url }));
+    e.target.value = "";
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,9 +229,12 @@ export default function Index() {
         ))}
 
         <div className="mt-auto">
-          <div className="w-8 h-8 rounded-full bg-[var(--accent-dim)] flex items-center justify-center text-xs font-bold text-[var(--accent)] cursor-pointer">
-            ВЫ
-          </div>
+          <button onClick={() => { setActiveTab("settings"); }} className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold cursor-pointer border-2 border-transparent hover:border-[var(--accent)] transition-all" style={{ backgroundColor: profile.avatarColor }}>
+            {profile.avatarImage
+              ? <img src={profile.avatarImage} alt="avatar" className="w-full h-full object-cover" />
+              : <span className="text-black text-[10px] font-bold">{profile.avatarText.slice(0, 2)}</span>
+            }
+          </button>
         </div>
       </div>
 
@@ -307,25 +363,29 @@ export default function Index() {
             </div>
             <div className="px-3 flex-1 overflow-y-auto">
               <div className="flex items-center gap-3 p-3 bg-[var(--bg-hover)] rounded-xl mb-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-black font-bold">
-                  ВЫ
+                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center font-bold flex-shrink-0" style={{ backgroundColor: profile.avatarColor }}>
+                  {profile.avatarImage
+                    ? <img src={profile.avatarImage} alt="avatar" className="w-full h-full object-cover" />
+                    : <span className="text-black text-sm">{profile.avatarText.slice(0, 2)}</span>
+                  }
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">Ваш профиль</p>
-                  <p className="text-xs text-[var(--text-muted)]">В сети</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{profile.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">@{profile.username}</p>
                 </div>
               </div>
 
               {[
-                { icon: "User", label: "Редактировать профиль" },
-                { icon: "Bell", label: "Уведомления" },
-                { icon: "Shield", label: "Конфиденциальность" },
-                { icon: "Palette", label: "Оформление" },
-                { icon: "HardDrive", label: "Данные и хранилище" },
-                { icon: "HelpCircle", label: "Помощь" },
-              ].map(({ icon, label }) => (
+                { icon: "User", label: "Редактировать профиль", action: openEdit as (() => void) | undefined },
+                { icon: "Bell", label: "Уведомления", action: undefined as (() => void) | undefined },
+                { icon: "Shield", label: "Конфиденциальность", action: undefined as (() => void) | undefined },
+                { icon: "Palette", label: "Оформление", action: undefined as (() => void) | undefined },
+                { icon: "HardDrive", label: "Данные и хранилище", action: undefined as (() => void) | undefined },
+                { icon: "HelpCircle", label: "Помощь", action: undefined as (() => void) | undefined },
+              ].map(({ icon, label, action }) => (
                 <button
                   key={label}
+                  onClick={action}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-hover)] transition-colors text-left mb-1"
                 >
                   <Icon name={icon} size={16} className="text-[var(--accent)]" />
@@ -403,10 +463,10 @@ export default function Index() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${msg.from === "me" ? "text-black" : "text-[var(--text-primary)]"}`}>
-                        {(msg as any).fileName || msg.text}
+                        {(msg as Message).fileName || msg.text}
                       </p>
                       <p className={`text-xs ${msg.from === "me" ? "text-black/60" : "text-[var(--text-muted)]"}`}>
-                        {(msg as any).fileSize || ""}
+                        {(msg as Message).fileSize || ""}
                       </p>
                     </div>
                     <Icon name="Download" size={14} className={msg.from === "me" ? "text-black/70" : "text-[var(--text-muted)]"} />
@@ -415,7 +475,7 @@ export default function Index() {
                 {msg.type === "image" && (
                   <div>
                     <img
-                      src={(msg as any).imageUrl}
+                      src={(msg as Message).imageUrl}
                       alt="изображение"
                       className="rounded-xl max-w-[240px] max-h-[200px] object-cover"
                     />
@@ -466,6 +526,102 @@ export default function Index() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditOpen(false)}>
+          <div
+            className="w-full max-w-sm mx-4 bg-[#12131c] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Редактировать профиль</h3>
+              <button onClick={() => setEditOpen(false)} className="w-7 h-7 rounded-lg hover:bg-[var(--bg-hover)] flex items-center justify-center transition-colors">
+                <Icon name="X" size={14} className="text-[var(--text-muted)]" />
+              </button>
+            </div>
+
+            <div className="px-5 py-5 flex flex-col gap-5">
+              {/* Avatar section */}
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold cursor-pointer relative group"
+                  style={{ backgroundColor: editProfile.avatarColor }}
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  {editProfile.avatarImage
+                    ? <img src={editProfile.avatarImage} alt="avatar" className="w-full h-full object-cover" />
+                    : <span className="text-black">{editProfile.avatarText.slice(0, 2)}</span>
+                  }
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                    <Icon name="Camera" size={20} className="text-white" />
+                  </div>
+                </div>
+                <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                <p className="text-xs text-[var(--text-muted)]">Нажмите на аватар, чтобы сменить фото</p>
+
+                {/* Color picker */}
+                <div className="flex gap-2">
+                  {AVATAR_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setEditProfile((p) => ({ ...p, avatarColor: color, avatarImage: null }))}
+                      className="w-6 h-6 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
+                      style={{ backgroundColor: color }}
+                    >
+                      {editProfile.avatarColor === color && !editProfile.avatarImage && (
+                        <Icon name="Check" size={12} className="text-black" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-[var(--text-muted)]">Имя</label>
+                <input
+                  value={editProfile.name}
+                  onChange={(e) => setEditProfile((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  placeholder="Ваше имя"
+                />
+              </div>
+
+              {/* Username */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-[var(--text-muted)]">Имя пользователя</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)]">@</span>
+                  <input
+                    value={editProfile.username}
+                    onChange={(e) => setEditProfile((p) => ({ ...p, username: e.target.value.replace(/\s/g, "") }))}
+                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl pl-7 pr-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                    placeholder="username"
+                  />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setEditOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={saveProfile}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-black text-sm font-semibold hover:shadow-[0_0_16px_var(--accent-glow)] transition-all"
+                >
+                  Сохранить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

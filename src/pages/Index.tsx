@@ -277,6 +277,7 @@ export default function Index() {
             src="https://cdn.poehali.dev/projects/14fe45a4-d745-4982-98d1-f7508597384f/bucket/174cc4e8-27c3-4a54-abbe-137db4a3fa20.png"
             alt="Настройки"
             className="w-6 h-6 object-contain"
+            style={{ mixBlendMode: "screen" }}
           />
         </button>
 

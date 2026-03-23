@@ -6,6 +6,25 @@ const AVATAR_COLORS = [
   "#8b5cf6", "#06b6d4", "#f97316", "#ec4899",
 ];
 
+const STICKERS = [
+  { id: "s1", emoji: "😂", label: "Смеюсь" },
+  { id: "s2", emoji: "🔥", label: "Огонь" },
+  { id: "s3", emoji: "👍", label: "Лайк" },
+  { id: "s4", emoji: "❤️", label: "Сердце" },
+  { id: "s5", emoji: "🥹", label: "Тронут" },
+  { id: "s6", emoji: "🤝", label: "Договорились" },
+  { id: "s7", emoji: "🚀", label: "Поехали" },
+  { id: "s8", emoji: "😎", label: "Круто" },
+  { id: "s9", emoji: "🤔", label: "Думаю" },
+  { id: "s10", emoji: "👀", label: "Смотрю" },
+  { id: "s11", emoji: "💯", label: "Сотка" },
+  { id: "s12", emoji: "🎉", label: "Ура" },
+  { id: "s13", emoji: "😴", label: "Сплю" },
+  { id: "s14", emoji: "🤡", label: "Клоун" },
+  { id: "s15", emoji: "🧊", label: "Холод" },
+  { id: "s16", emoji: "💀", label: "Умер" },
+];
+
 const CHATS = [
   {
     id: 1,
@@ -84,7 +103,7 @@ interface Message {
   text: string;
   from: "me" | "them";
   time: string;
-  type: "text" | "file" | "image";
+  type: "text" | "file" | "image" | "sticker";
   fileName?: string;
   fileSize?: string;
   imageUrl?: string;
@@ -118,6 +137,7 @@ export default function Index() {
   });
   const [editOpen, setEditOpen] = useState(false);
   const [editProfile, setEditProfile] = useState<Profile>(profile);
+  const [stickerOpen, setStickerOpen] = useState(false);
 
   const filteredChats = allChats.filter((c) =>
     view === "active" ? !c.archived : c.archived
@@ -157,6 +177,24 @@ export default function Index() {
       )
     );
     setMessage("");
+  };
+
+  const sendSticker = (emoji: string) => {
+    const newMsg: Message = {
+      id: messages.length + 1,
+      text: emoji,
+      from: "me",
+      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+      type: "sticker" as Message["type"],
+    };
+    const updated = [...messages, newMsg];
+    setMessages(updated);
+    setAllChats((prev) =>
+      prev.map((c) =>
+        c.id === selectedChat.id ? { ...c, messages: updated, lastMessage: emoji, time: newMsg.time } : c
+      )
+    );
+    setStickerOpen(false);
   };
 
   const openEdit = () => {
@@ -212,7 +250,6 @@ export default function Index() {
         {[
           { tab: "chats" as Tab, icon: "MessageSquare", label: "Чаты" },
           { tab: "search" as Tab, icon: "Search", label: "Поиск" },
-          { tab: "settings" as Tab, icon: "Settings", label: "Настройки" },
         ].map(({ tab, icon, label }) => (
           <button
             key={tab}
@@ -227,6 +264,21 @@ export default function Index() {
             <Icon name={icon} size={18} />
           </button>
         ))}
+        <button
+          onClick={() => setActiveTab("settings")}
+          title="Настройки"
+          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 overflow-hidden ${
+            activeTab === "settings"
+              ? "ring-2 ring-[var(--accent)] shadow-[0_0_12px_var(--accent-glow)]"
+              : "opacity-60 hover:opacity-100"
+          }`}
+        >
+          <img
+            src="https://cdn.poehali.dev/projects/14fe45a4-d745-4982-98d1-f7508597384f/bucket/174cc4e8-27c3-4a54-abbe-137db4a3fa20.png"
+            alt="Настройки"
+            className="w-6 h-6 object-contain"
+          />
+        </button>
 
         <div className="mt-auto">
           <button onClick={() => { setActiveTab("settings"); }} className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold cursor-pointer border-2 border-transparent hover:border-[var(--accent)] transition-all" style={{ backgroundColor: profile.avatarColor }}>
@@ -440,7 +492,7 @@ export default function Index() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2" onClick={() => setStickerOpen(false)}>
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -481,10 +533,21 @@ export default function Index() {
                     />
                   </div>
                 )}
-                <p className={`text-[10px] mt-1 text-right ${msg.from === "me" ? "text-black/60" : "text-[var(--text-muted)]"}`}>
-                  {msg.time}
-                  {msg.from === "me" && <Icon name="CheckCheck" size={10} className="inline ml-1" />}
-                </p>
+                {msg.type === "sticker" && (
+                  <div className="text-5xl py-1 select-none">{msg.text}</div>
+                )}
+                {msg.type !== "sticker" && (
+                  <p className={`text-[10px] mt-1 text-right ${msg.from === "me" ? "text-black/60" : "text-[var(--text-muted)]"}`}>
+                    {msg.time}
+                    {msg.from === "me" && <Icon name="CheckCheck" size={10} className="inline ml-1" />}
+                  </p>
+                )}
+                {msg.type === "sticker" && (
+                  <p className={`text-[10px] text-right ${msg.from === "me" ? "text-black/60" : "text-[var(--text-muted)]"}`}>
+                    {msg.time}
+                    {msg.from === "me" && <Icon name="CheckCheck" size={10} className="inline ml-1" />}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -513,9 +576,31 @@ export default function Index() {
               placeholder="Написать сообщение..."
               className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
-            <button className="w-7 h-7 rounded-lg hover:bg-[var(--bg-hover)] flex items-center justify-center transition-colors">
-              <Icon name="Smile" size={16} className="text-[var(--text-muted)]" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setStickerOpen((v) => !v)}
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${stickerOpen ? "bg-[var(--accent-dim)]" : "hover:bg-[var(--bg-hover)]"}`}
+              >
+                <Icon name="Smile" size={16} className={stickerOpen ? "text-[var(--accent)]" : "text-[var(--text-muted)]"} />
+              </button>
+              {stickerOpen && (
+                <div className="absolute bottom-10 right-0 w-60 bg-[#12131c] border border-[var(--border)] rounded-2xl shadow-2xl p-3 z-20">
+                  <p className="text-[10px] text-[var(--text-muted)] font-medium mb-2 px-1">Стикеры</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    {STICKERS.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => sendSticker(s.emoji)}
+                        title={s.label}
+                        className="w-12 h-12 rounded-xl text-2xl hover:bg-[var(--bg-hover)] flex items-center justify-center transition-colors hover:scale-110 transform"
+                      >
+                        {s.emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={sendMessage}
               disabled={!message.trim()}
